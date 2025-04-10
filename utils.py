@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.feature_selection import SelectKBest, f_classif, RFE
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
@@ -10,7 +10,9 @@ from geometric_mean_score import gmean_scorer
 from corr_feature_reducer import CorrelationFeatureReducer
 
 
-def preprocess(X_train, X_test, y_train, k=None, reduction_type="kbest"):
+def preprocess(
+    X_train, X_test, y_train, k=None, reduction_type="kbest", estimator=None
+):
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
@@ -28,6 +30,11 @@ def preprocess(X_train, X_test, y_train, k=None, reduction_type="kbest"):
             pca = PCA(n_components=k)
             X_train = pca.fit_transform(X_train, y_train)
             X_test = pca.transform(X_test)
+        elif reduction_type == "rfe":
+            assert estimator is not None
+            rfe = RFE(estimator, n_features_to_select=k)
+            X_train = rfe.fit_transform(X_train, y_train)
+            X_test = rfe.transform(X_test)
     return X_train, X_test
 
 
@@ -126,7 +133,15 @@ def extract_params_and_k(params, model_prefix="clf", k_key="select__k"):
     return best_params, best_k
 
 
-def get_kfold_results(model, X, y, cv, best_k, preprocess_reduction_type="kbest"):
+def get_kfold_results(
+    model,
+    X,
+    y,
+    cv,
+    best_k,
+    preprocess_reduction_type="kbest",
+    preprocess_estimator=None,
+):
     folds = cv.split(X, y)
 
     metrics = []
@@ -141,6 +156,7 @@ def get_kfold_results(model, X, y, cv, best_k, preprocess_reduction_type="kbest"
             y_train_,
             k=best_k,
             reduction_type=preprocess_reduction_type,
+            estimator=preprocess_estimator,
         )
 
         model.fit(X_train_, y_train_)
