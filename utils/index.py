@@ -6,8 +6,8 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from geometric_mean_score import gmean_scorer
-from corr_feature_reducer import CorrelationFeatureReducer
+from .geometric_mean_score import gmean_scorer
+from .corr_feature_reducer import CorrelationFeatureReducer
 
 
 def preprocess(
