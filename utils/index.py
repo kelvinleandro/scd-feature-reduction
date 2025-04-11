@@ -102,7 +102,7 @@ def display_kfold_scores(other_metrics, auc_scores=None):
 
 
 def apply_grid_search(
-    X, y, estimator, param_grid, scoring, cv=None, display_score=True
+    X, y, estimator, param_grid, scoring, cv=None, display_score=True, fit_params={}
 ):
     if cv is None:
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -112,11 +112,11 @@ def apply_grid_search(
         param_grid=param_grid,
         scoring=scoring,
         cv=cv,
-        n_jobs=-1,
+        # n_jobs=-1,
         verbose=1,
     )
 
-    grid_search.fit(X, y)
+    grid_search.fit(X, y, **fit_params)
 
     if display_score:
         print(f"Best score: {grid_search.best_score_}")
@@ -141,6 +141,7 @@ def get_kfold_results(
     best_k,
     preprocess_reduction_type="kbest",
     preprocess_estimator=None,
+    sample_weights=None,
 ):
     folds = cv.split(X, y)
 
@@ -159,7 +160,11 @@ def get_kfold_results(
             estimator=preprocess_estimator,
         )
 
-        model.fit(X_train_, y_train_)
+        if sample_weights is not None:
+            fit_params = {"sample_weight": sample_weights[train_idx]}
+        else:
+            fit_params = {}
+        model.fit(X_train_, y_train_, **fit_params)
 
         y_pred = model.predict(X_test_)
         metrics.append(calculate_metrics(y_test_, y_pred, display=False))
