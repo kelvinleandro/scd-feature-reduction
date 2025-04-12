@@ -50,6 +50,8 @@
 
   > criado, nao testado nos metodos baseados em arvores, mas na regressao logistica nao houve diferença comparado com o SelectKBest
 
+- "Nested cross-validation"
+
 - oversampling usando `SMOTE`
 
 - tentar extrair de novo extrair features nao lineares e/ou da frequência de um holter longo com o `biosppy` e ver quanto tempo gasta (ou ver uma solução melhor para extrair elas)
