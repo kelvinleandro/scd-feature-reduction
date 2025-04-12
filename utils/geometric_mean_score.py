@@ -8,6 +8,10 @@ def specificity_score(y_true, y_pred):
 
 
 def geometric_mean_score(y_true, y_pred):
+    # special case for isolation forest
+    if -1 in y_pred:
+        y_pred = (y_pred == -1).astype(int)
+
     recall = recall_score(y_true, y_pred)
     specificity = specificity_score(y_true, y_pred)
     return np.sqrt(recall * specificity)

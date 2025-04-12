@@ -58,6 +58,8 @@ def find_best_fold(folds, metrics_results, eval_metric="f1"):
 
 
 def calculate_metrics(y_true, y_pred, display=True):
+    if -1 in y_pred:
+        y_pred = (y_pred == -1).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
     epsilon = 1e-08
 
