@@ -5,9 +5,10 @@ from sklearn.feature_selection import SelectKBest, f_classif, RFE
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, GroupKFold
 from .geometric_mean_score import gmean_scorer
 from .corr_feature_reducer import CorrelationFeatureReducer
+from .stratified_group_kfold import StratifiedGroupKFold
 
 
 def preprocess(
@@ -126,6 +127,27 @@ def apply_grid_search(
     return grid_search.best_params_
 
 
+def apply_grid_search_grouped(
+    X, y, estimator, param_grid, scoring, groups, display_score=True, fit_params={}
+):
+    cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
+
+    grid_search = GridSearchCV(
+        estimator=estimator,
+        param_grid=param_grid,
+        scoring=scoring,
+        cv=cv.split(X, y, groups=groups),
+        verbose=1,
+    )
+
+    grid_search.fit(X, y, **fit_params)
+
+    if display_score:
+        print(f"Best score: {grid_search.best_score_}")
+
+    return grid_search.best_params_
+
+
 def extract_params_and_k(params, model_prefix="clf", k_key="select__k"):
     best_params = {
         k.split("__")[-1]: v for k, v in params.items() if k.startswith(model_prefix)
@@ -166,6 +188,47 @@ def get_kfold_results(
             fit_params = {"sample_weight": sample_weights[train_idx]}
         else:
             fit_params = {}
+        model.fit(X_train_, y_train_, **fit_params)
+
+        y_pred = model.predict(X_test_)
+        metrics.append(calculate_metrics(y_test_, y_pred, display=False))
+
+    return np.array(metrics)
+
+
+def get_kfold_results_grouped(
+    model,
+    X,
+    y,
+    groups,
+    best_k,
+    preprocess_reduction_type="kbest",
+    preprocess_estimator=None,
+    sample_weights=None,
+):
+    cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
+    folds = cv.split(X, y, groups=groups)
+
+    metrics = []
+
+    for train_idx, test_idx in folds:
+        X_train_, X_test_ = X[train_idx], X[test_idx]
+        y_train_, y_test_ = y[train_idx], y[test_idx]
+
+        X_train_, X_test_ = preprocess(
+            X_train_,
+            X_test_,
+            y_train_,
+            k=best_k,
+            reduction_type=preprocess_reduction_type,
+            estimator=preprocess_estimator,
+        )
+
+        if sample_weights is not None:
+            fit_params = {"sample_weight": sample_weights[train_idx]}
+        else:
+            fit_params = {}
+
         model.fit(X_train_, y_train_, **fit_params)
 
         y_pred = model.predict(X_test_)
